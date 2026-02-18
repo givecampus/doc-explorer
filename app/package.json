@@ -7,6 +7,7 @@
     "dev": "npm run parse && vite",
     "dev:cached": "vite",
     "build": "npm run parse && vite build",
+    "build:only": "vite build",
     "preview": "vite preview",
     "parse": "node ../build/fetch-docs.js && node ../build/extract-code-snippets.js"
   },
