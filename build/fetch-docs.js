@@ -24,8 +24,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const OUTPUT_DIR = path.resolve(__dirname, '../app/src/data');
-const OUTPUT_FILE = path.join(OUTPUT_DIR, 'pages.json');
+const DEFAULT_OUTPUT_DIR = path.resolve(__dirname, '../app/src/data');
 
 // --- Markdown parsing (reused from parse-workflows.js) ---
 
@@ -270,14 +269,19 @@ function findNode(nodes, route) {
 
 // --- Main ---
 
-async function main() {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+export async function fetchDocs(config = {}) {
+  const outputDir = config.outputDir || DEFAULT_OUTPUT_DIR;
+  const outputFile = path.join(outputDir, 'pages.json');
+  const docsPath = config.docsPath || DOCS_PATH;
+  const repoRoot = config.repoRoot || LOCAL_REPO_ROOT;
+
+  fs.mkdirSync(outputDir, { recursive: true });
 
   // Discover markdown files
   let relativeFiles;
 
-  if (LOCAL_REPO_ROOT) {
-    const docsDir = path.resolve(LOCAL_REPO_ROOT, DOCS_PATH);
+  if (repoRoot) {
+    const docsDir = path.resolve(repoRoot, docsPath);
     if (!fs.existsSync(docsDir)) {
       console.error(`Docs directory not found: ${docsDir}`);
       process.exit(1);
@@ -285,8 +289,8 @@ async function main() {
     console.log(`Discovering docs in ${docsDir}`);
     relativeFiles = await discoverLocalFiles(docsDir);
   } else {
-    console.log(`Discovering docs via GitHub API: ${DOCS_PATH}/`);
-    relativeFiles = await discoverRemoteFiles(DOCS_PATH);
+    console.log(`Discovering docs via GitHub API: ${docsPath}/`);
+    relativeFiles = await discoverRemoteFiles(docsPath);
   }
 
   relativeFiles.sort();
@@ -294,7 +298,7 @@ async function main() {
 
   if (relativeFiles.length === 0) {
     console.warn('No markdown files found.');
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify({ pages: {}, navTree: [] }, null, 2));
+    fs.writeFileSync(outputFile, JSON.stringify({ pages: {}, navTree: [] }, null, 2));
     return;
   }
 
@@ -302,7 +306,7 @@ async function main() {
   const pages = {};
 
   for (const relFile of relativeFiles) {
-    const fullPath = `${DOCS_PATH}/${relFile}`;
+    const fullPath = `${docsPath}/${relFile}`;
     console.log(`  Fetching: ${fullPath}`);
 
     const content = await fetchFileContent(fullPath);
@@ -407,8 +411,12 @@ async function main() {
   const navTree = buildNavTree(pages);
 
   const output = { pages, navTree };
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2));
-  console.log(`\nWrote ${Object.keys(pages).length} pages to ${OUTPUT_FILE}`);
+  fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
+  console.log(`\nWrote ${Object.keys(pages).length} pages to ${outputFile}`);
 }
 
-main();
+// Auto-execute when run directly
+const isDirectRun = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(__filename);
+if (isDirectRun) {
+  fetchDocs();
+}

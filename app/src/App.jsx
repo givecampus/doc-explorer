@@ -99,6 +99,10 @@ export default function App() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
+  useEffect(() => {
+    document.title = headerTitle;
+  }, []);
+
   return (
     <div className="app-layout">
       <header className="app-header">

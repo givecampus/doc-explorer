@@ -22,16 +22,19 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PAGES_FILE = path.resolve(__dirname, '../app/src/data/pages.json');
-const OUTPUT_FILE = path.resolve(__dirname, '../app/src/data/source-files.json');
+const DEFAULT_DATA_DIR = path.resolve(__dirname, '../app/src/data');
 
-async function main() {
-  if (!fs.existsSync(PAGES_FILE)) {
+export async function extractSnippets(config = {}) {
+  const dataDir = config.dataDir || DEFAULT_DATA_DIR;
+  const pagesFile = config.pagesFile || path.join(dataDir, 'pages.json');
+  const outputFile = config.outputFile || path.join(dataDir, 'source-files.json');
+
+  if (!fs.existsSync(pagesFile)) {
     console.error('Pages JSON not found. Run fetch-docs.js first.');
     process.exit(1);
   }
 
-  const { pages } = JSON.parse(fs.readFileSync(PAGES_FILE, 'utf-8'));
+  const { pages } = JSON.parse(fs.readFileSync(pagesFile, 'utf-8'));
 
   // Collect all unique file paths across all pages
   const filePaths = new Set();
@@ -78,8 +81,12 @@ async function main() {
     10
   );
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(sourceFiles, null, 2));
-  console.log(`\nWrote ${uniqueFiles.length} source files to ${OUTPUT_FILE}`);
+  fs.writeFileSync(outputFile, JSON.stringify(sourceFiles, null, 2));
+  console.log(`\nWrote ${uniqueFiles.length} source files to ${outputFile}`);
 }
 
-main();
+// Auto-execute when run directly
+const isDirectRun = process.argv[1] && fs.realpathSync(process.argv[1]) === fs.realpathSync(__filename);
+if (isDirectRun) {
+  extractSnippets();
+}
