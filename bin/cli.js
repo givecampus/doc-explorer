@@ -16,7 +16,7 @@ function parseArgs(argv) {
     command: null,
     docsPath: 'docs',
     output: '_site',
-    base: '/',
+    base: './',
   };
 
   let i = 0;
