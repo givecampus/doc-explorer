@@ -259,13 +259,14 @@ export default function MermaidDiagram({ id, definition, nodeFiles, participantM
         </svg>
       </button>
       <div ref={containerRef} />
-      {popover && (
+      {popover && ReactDOM.createPortal(
         <NodePopover
           fileRef={popover.fileRef}
           sourceFiles={sourceFiles}
           anchorEl={popover.anchorEl}
           onClose={handleClose}
-        />
+        />,
+        document.body
       )}
       {fullscreen && (
         <FullscreenOverlay
