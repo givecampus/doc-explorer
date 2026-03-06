@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import DocPage from './components/DocPage';
+import CommandPalette from './components/CommandPalette';
 import pagesData from './data/pages.json';
 
 const { pages, navTree } = pagesData;
@@ -114,6 +115,7 @@ export default function App() {
         </Link>
         <EditorSelector />
       </header>
+      <CommandPalette pages={pages} />
 
       <main className="app-main">
         <Routes>
