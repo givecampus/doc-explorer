@@ -17,6 +17,7 @@ function parseArgs(argv) {
     docsPath: 'docs',
     output: '_site',
     base: './',
+    theme: 'warm',
   };
 
   let i = 0;
@@ -28,6 +29,8 @@ function parseArgs(argv) {
       opts.output = args[++i];
     } else if (arg === '--base' && args[i + 1]) {
       opts.base = args[++i];
+    } else if (arg === '--theme' && args[i + 1]) {
+      opts.theme = args[++i];
     } else if (arg === '--help' || arg === '-h') {
       printUsage();
       process.exit(0);
@@ -51,6 +54,7 @@ function printUsage() {
     --docs-path <path>   Path to docs directory in repo (default: docs)
     --output <dir>       Output directory for built site (default: _site)
     --base <path>        Base path for assets (default: /)
+    --theme <id>         Default theme: warm, dark, cool (default: warm)
     -h, --help           Show this help message
 
   Examples:
@@ -87,6 +91,7 @@ async function main() {
   console.log(`  Docs path:  ${opts.docsPath}`);
   console.log(`  Output dir: ${path.resolve(callerCwd, opts.output)}`);
   console.log(`  Base path:  ${base}`);
+  console.log(`  Theme:      ${opts.theme}`);
   console.log('');
 
   // Step 1: Set env vars for build scripts before importing them
@@ -127,6 +132,7 @@ async function main() {
     },
     define: {
       'import.meta.env.VITE_HASH_ROUTER': JSON.stringify('true'),
+      'import.meta.env.VITE_DEFAULT_THEME': JSON.stringify(opts.theme),
     },
     logLevel: 'info',
   });

@@ -25,6 +25,26 @@
   --color-sync-edge: #b0a890;
   --color-async-edge: #a0522d;
 
+  /* Syntax highlighting */
+  --syntax-keyword: #8b4513;
+  --syntax-string: #6a7c3a;
+  --syntax-number: #a0522d;
+  --syntax-comment: #9a8a6a;
+  --syntax-variable: #6a5040;
+  --syntax-title: #5a5a8a;
+  --syntax-symbol: #8B6914;
+  --syntax-meta: #8a6a4a;
+  --syntax-regexp: #a05050;
+  --syntax-deletion: #9b2c2c;
+  --syntax-deletion-bg: rgba(155, 44, 44, 0.08);
+  --syntax-addition: #6a7c3a;
+  --syntax-addition-bg: rgba(106, 124, 58, 0.08);
+  --focus-line-bg: rgba(139, 105, 20, 0.06);
+
+  /* Overlay / shadow */
+  --overlay-bg: rgba(42, 32, 16, 0.55);
+  --shadow-color: rgba(42, 32, 16, 0.12);
+
   /* Layout */
   --content-max-width: 820px;
   --popover-max-width: 560px;
@@ -156,7 +176,7 @@ body {
 
 .workflow-card:hover {
   border-color: var(--border-default);
-  box-shadow: 0 2px 8px rgba(42, 32, 16, 0.06);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .workflow-card-title {
@@ -446,7 +466,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 9000;
-  background: rgba(42, 32, 16, 0.55);
+  background: var(--overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -470,7 +490,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 16px 64px rgba(42, 32, 16, 0.25);
+  box-shadow: 0 16px 64px var(--shadow-color);
 }
 
 .diagram-fullscreen-toolbar {
@@ -662,7 +682,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  box-shadow: 0 8px 30px rgba(42, 32, 16, 0.12), 0 2px 8px rgba(42, 32, 16, 0.06);
+  box-shadow: 0 8px 30px var(--shadow-color), 0 2px 8px var(--shadow-color);
   width: min(var(--popover-max-width), calc(100vw - 2rem));
   max-height: var(--popover-max-height);
   display: flex;
@@ -779,7 +799,7 @@ body {
 }
 
 .code-line--focus {
-  background: rgba(139, 105, 20, 0.06);
+  background: var(--focus-line-bg);
 }
 
 .code-line-number {
@@ -802,51 +822,51 @@ body {
 .code-block .hljs-keyword,
 .code-block .hljs-selector-tag,
 .code-block .hljs-built_in {
-  color: #8b4513; /* saddle brown — keywords */
+  color: var(--syntax-keyword);
   font-weight: 600;
 }
 
 .code-block .hljs-string,
 .code-block .hljs-attr,
 .code-block .hljs-addition {
-  color: #6a7c3a; /* olive green — strings */
+  color: var(--syntax-string);
 }
 
 .code-block .hljs-number,
 .code-block .hljs-literal {
-  color: #a0522d; /* sienna — numbers, true/false/nil */
+  color: var(--syntax-number);
 }
 
 .code-block .hljs-comment,
 .code-block .hljs-quote {
-  color: #9a8a6a; /* warm gray — comments */
+  color: var(--syntax-comment);
   font-style: italic;
 }
 
 .code-block .hljs-variable,
 .code-block .hljs-template-variable {
-  color: #6a5040; /* dark tan — variables */
+  color: var(--syntax-variable);
 }
 
 .code-block .hljs-title,
 .code-block .hljs-title\.class_,
 .code-block .hljs-title\.function_ {
-  color: #5a5a8a; /* muted indigo — class/method names */
+  color: var(--syntax-title);
   font-weight: 600;
 }
 
 .code-block .hljs-type,
 .code-block .hljs-title\.class_ {
-  color: #5a5a8a;
+  color: var(--syntax-title);
 }
 
 .code-block .hljs-symbol {
-  color: #8B6914; /* gold — :symbols */
+  color: var(--syntax-symbol);
 }
 
 .code-block .hljs-meta,
 .code-block .hljs-meta .hljs-keyword {
-  color: #8a6a4a; /* warm brown — meta/pragmas */
+  color: var(--syntax-meta);
 }
 
 .code-block .hljs-params {
@@ -854,25 +874,25 @@ body {
 }
 
 .code-block .hljs-regexp {
-  color: #a05050; /* dusty red — regex */
+  color: var(--syntax-regexp);
 }
 
 .code-block .hljs-deletion {
-  color: #9b2c2c;
-  background: rgba(155, 44, 44, 0.08);
+  color: var(--syntax-deletion);
+  background: var(--syntax-deletion-bg);
 }
 
 .code-block .hljs-addition {
-  background: rgba(106, 124, 58, 0.08);
+  background: var(--syntax-addition-bg);
 }
 
 .code-block .hljs-selector-class,
 .code-block .hljs-selector-id {
-  color: #5a5a8a;
+  color: var(--syntax-title);
 }
 
 .code-block .hljs-attribute {
-  color: #6a5040;
+  color: var(--syntax-variable);
 }
 
 /* ---------- Table of Contents ---------- */
@@ -1000,7 +1020,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(42, 32, 16, 0.1);
+  box-shadow: 0 4px 16px var(--shadow-color);
   padding: 0.3rem 0;
   min-width: 160px;
 }
@@ -1074,7 +1094,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(42, 32, 16, 0.45);
+  background: var(--overlay-bg);
   animation: cmdk-overlay-in 0.15s ease-out;
 }
 
@@ -1093,7 +1113,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: 10px;
-  box-shadow: 0 16px 64px rgba(42, 32, 16, 0.2), 0 4px 16px rgba(42, 32, 16, 0.08);
+  box-shadow: 0 16px 64px var(--shadow-color), 0 4px 16px var(--shadow-color);
   overflow: hidden;
   animation: cmdk-dialog-in 0.15s ease-out;
 }
