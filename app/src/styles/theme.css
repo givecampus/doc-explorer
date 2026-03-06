@@ -875,6 +875,83 @@ body {
   color: #6a5040;
 }
 
+/* ---------- Table of Contents ---------- */
+
+.toc {
+  position: fixed;
+  top: 7.5rem;
+  /* Sit just to the left of the centered content column */
+  left: max(1rem, calc(50% - var(--content-max-width) / 2 - 216px));
+  width: 192px;
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+  /* Hidden on narrow viewports; appears when there's room beside the content */
+  display: none;
+  scrollbar-width: none;
+}
+
+.toc::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 1300px) {
+  .toc {
+    display: block;
+  }
+}
+
+.toc-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+  padding-left: 0.5rem;
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc-item {
+  margin: 0;
+}
+
+.toc-item--h3 {
+  padding-left: 0.85rem;
+}
+
+.toc-item--h4 {
+  padding-left: 1.6rem;
+}
+
+.toc-link {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 3px 3px 0;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.toc-link:hover {
+  color: var(--text-secondary);
+  border-left-color: var(--border-default);
+  background: var(--bg-muted);
+}
+
+.toc-link--active {
+  color: var(--text-accent);
+  border-left-color: var(--text-accent);
+  font-weight: 500;
+}
+
 /* ---------- Utility ---------- */
 
 .sr-only {

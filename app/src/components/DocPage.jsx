@@ -3,6 +3,7 @@ import { useLocation, useSearchParams, Navigate, Link } from 'react-router-dom';
 import Breadcrumb from './Breadcrumb';
 import MarkdownRenderer from './MarkdownRenderer';
 import MermaidDiagram from './MermaidDiagram';
+import TableOfContents from './TableOfContents';
 import sourceFiles from '../data/source-files.json';
 
 function getFirstRoute(navTree) {
@@ -79,8 +80,10 @@ export default function DocPage({ pages, navTree }) {
   const routeSlug = route.replace(/\//g, '-').replace(/^-/, '') || 'root';
 
   return (
-    <article className="workflow-page">
-      {breadcrumbs.length > 1 && <Breadcrumb items={breadcrumbs} />}
+    <>
+      <TableOfContents sections={page.sections} />
+      <article className="workflow-page">
+        {breadcrumbs.length > 1 && <Breadcrumb items={breadcrumbs} />}
 
       <h1>{page.title}</h1>
 
@@ -145,6 +148,7 @@ export default function DocPage({ pages, navTree }) {
           </div>
         </>
       )}
-    </article>
+      </article>
+    </>
   );
 }
