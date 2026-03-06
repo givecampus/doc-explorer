@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import mermaid from 'mermaid';
 import NodePopover from './NodePopover';
+import SourcePanel from './SourcePanel';
 
 let mermaidInitialized = false;
 
@@ -87,8 +88,10 @@ function findNodeElements(container, nodeId, participantMap) {
 /**
  * Render mermaid SVG into a container and attach click handlers.
  * Shared between inline and fullscreen views.
+ *
+ * onNodeClick(nodeId, fileRef, anchorEl) — each caller wraps with its own logic.
  */
-function renderMermaidInto(container, mermaidId, definition, nodeFiles, participantMap, setPopover, setError) {
+function renderMermaidInto(container, mermaidId, definition, nodeFiles, participantMap, onNodeClick, setError) {
   initMermaid();
   const renderId = `mermaid-${mermaidId}-${renderCounter++}`;
   const hasClickableNodes = nodeFiles && Object.keys(nodeFiles).length > 0;
@@ -107,10 +110,7 @@ function renderMermaidInto(container, mermaidId, definition, nodeFiles, particip
               nodeEl.classList.add('clickable-node');
               nodeEl.addEventListener('click', (e) => {
                 e.stopPropagation();
-                setPopover((prev) => {
-                  if (prev && prev.nodeId === nodeId) return null;
-                  return { nodeId, fileRef, anchorEl: nodeEl };
-                });
+                onNodeClick(nodeId, fileRef, nodeEl);
               });
             });
           });
@@ -123,10 +123,16 @@ function renderMermaidInto(container, mermaidId, definition, nodeFiles, particip
     });
 }
 
-function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFiles, onClose }) {
+function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFiles, activeNodeId, onNodeSelect, onClose }) {
   const containerRef = useRef(null);
-  const [popover, setPopover] = useState(null);
-  const handlePopoverClose = useCallback(() => setPopover(null), []);
+
+  // Refs to avoid stale closures in click handlers attached by renderMermaidInto
+  const activeNodeIdRef = useRef(activeNodeId);
+  activeNodeIdRef.current = activeNodeId;
+  const onNodeSelectRef = useRef(onNodeSelect);
+  onNodeSelectRef.current = onNodeSelect;
+
+  const activeFileRef = activeNodeId && nodeFiles ? nodeFiles[activeNodeId] : null;
 
   // Render diagram into the fullscreen container
   useEffect(() => {
@@ -139,19 +145,39 @@ function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFi
       definition,
       nodeFiles,
       participantMap,
-      (fn) => { if (!cancelled) setPopover(fn); },
+      (nodeId) => {
+        if (!cancelled) {
+          if (activeNodeIdRef.current === nodeId) {
+            onNodeSelectRef.current(null);
+          } else {
+            onNodeSelectRef.current(nodeId);
+          }
+        }
+      },
       null
     );
 
     return () => { cancelled = true; };
   }, [id, definition, nodeFiles, participantMap]);
 
-  // Close on Escape
+  // Highlight active node in SVG
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.querySelectorAll('.active-node').forEach((el) => {
+      el.classList.remove('active-node');
+    });
+    if (activeNodeId) {
+      const elements = findNodeElements(containerRef.current, activeNodeId, participantMap);
+      elements.forEach((el) => el.classList.add('active-node'));
+    }
+  }, [activeNodeId, participantMap]);
+
+  // Escape key: close source panel first, then fullscreen
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') {
-        if (popover) {
-          setPopover(null);
+        if (activeNodeId) {
+          onNodeSelect(null);
         } else {
           onClose();
         }
@@ -159,7 +185,7 @@ function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFi
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose, popover]);
+  }, [onClose, activeNodeId, onNodeSelect]);
 
   // Lock body scroll while fullscreen is open
   useEffect(() => {
@@ -169,7 +195,6 @@ function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFi
 
   return ReactDOM.createPortal(
     <div className="diagram-fullscreen-overlay" onClick={(e) => {
-      // Close if clicking the backdrop (not the diagram content)
       if (e.target === e.currentTarget) onClose();
     }}>
       <div className="diagram-fullscreen-chrome">
@@ -181,28 +206,28 @@ function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFi
             &times;
           </button>
         </div>
-        <div className="diagram-fullscreen-scroll">
-          <div className="diagram-fullscreen-content" ref={containerRef} />
+        <div className="diagram-fullscreen-body">
+          <div className={`diagram-fullscreen-diagram-pane${activeFileRef ? ' has-source' : ''}`}>
+            <div className="diagram-fullscreen-content" ref={containerRef} />
+          </div>
+          {activeFileRef && (
+            <SourcePanel
+              fileRef={activeFileRef}
+              sourceFiles={sourceFiles}
+              onClose={() => onNodeSelect(null)}
+            />
+          )}
         </div>
       </div>
-      {popover && (
-        <NodePopover
-          fileRef={popover.fileRef}
-          sourceFiles={sourceFiles}
-          anchorEl={popover.anchorEl}
-          onClose={handlePopoverClose}
-        />
-      )}
     </div>,
     document.body
   );
 }
 
-export default function MermaidDiagram({ id, definition, nodeFiles, participantMap, sourceFiles }) {
+export default function MermaidDiagram({ id, definition, nodeFiles, participantMap, sourceFiles, isFullscreen, activeNodeId, onFullscreenOpen, onFullscreenClose, onNodeSelect }) {
   const containerRef = useRef(null);
   const [error, setError] = useState(null);
   const [popover, setPopover] = useState(null);
-  const [fullscreen, setFullscreen] = useState(false);
 
   const hasClickableNodes = nodeFiles && Object.keys(nodeFiles).length > 0;
 
@@ -217,7 +242,14 @@ export default function MermaidDiagram({ id, definition, nodeFiles, participantM
       definition,
       nodeFiles,
       participantMap,
-      (fn) => { if (!cancelled) setPopover(fn); },
+      (nodeId, fileRef, anchorEl) => {
+        if (!cancelled) {
+          setPopover((prev) => {
+            if (prev && prev.nodeId === nodeId) return null;
+            return { nodeId, fileRef, anchorEl };
+          });
+        }
+      },
       (msg) => { if (!cancelled) setError(msg); }
     );
 
@@ -247,7 +279,7 @@ export default function MermaidDiagram({ id, definition, nodeFiles, participantM
     <div className="diagram-container">
       <button
         className="diagram-expand-btn"
-        onClick={() => { setPopover(null); setFullscreen(true); }}
+        onClick={() => { setPopover(null); onFullscreenOpen(); }}
         aria-label="Expand diagram"
         title="View fullscreen"
       >
@@ -268,14 +300,16 @@ export default function MermaidDiagram({ id, definition, nodeFiles, participantM
         />,
         document.body
       )}
-      {fullscreen && (
+      {isFullscreen && (
         <FullscreenOverlay
           id={id}
           definition={definition}
           nodeFiles={nodeFiles}
           participantMap={participantMap}
           sourceFiles={sourceFiles}
-          onClose={() => setFullscreen(false)}
+          activeNodeId={activeNodeId}
+          onNodeSelect={onNodeSelect}
+          onClose={onFullscreenClose}
         />
       )}
     </div>
