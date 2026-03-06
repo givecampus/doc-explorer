@@ -10,8 +10,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Project root is two levels up from build/lib/
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
+
 // Load .env from project root if present
-const envPath = path.resolve(__dirname, '../../.env');
+const envPath = path.resolve(PROJECT_ROOT, '.env');
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, 'utf-8').split('\n')) {
     const trimmed = line.trim();
@@ -24,8 +27,9 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-export const LOCAL_REPO_ROOT = process.env.LOCAL_REPO_ROOT || null;
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || null;
+// Default to this project's own root so the docs/ folder works with no config
+export const LOCAL_REPO_ROOT = process.env.LOCAL_REPO_ROOT || (!GITHUB_TOKEN ? PROJECT_ROOT : null);
 export const GITHUB_OWNER = process.env.GITHUB_OWNER || 'givecampus';
 export const GITHUB_REPO = process.env.GITHUB_REPO || 'givecampus';
 export const GITHUB_REF = process.env.GITHUB_REF || 'staging';
