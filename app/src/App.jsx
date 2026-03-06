@@ -3,6 +3,9 @@ import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import DocPage from './components/DocPage';
 import CommandPalette from './components/CommandPalette';
 import pagesData from './data/pages.json';
+import { THEMES, getTheme, getInitialThemeId, THEME_STORAGE_KEY } from './themes/index.js';
+import { applyTheme } from './themes/applyTheme.js';
+import { ThemeContext } from './ThemeContext.js';
 
 const { pages, navTree } = pagesData;
 
@@ -18,7 +21,7 @@ const EDITORS = [
 const EDITOR_STORAGE_KEY = 'docs-editor-preference';
 const REPO_PATH_STORAGE_KEY = 'docs-repo-path';
 
-function EditorSelector() {
+function EditorSelector({ themeId, onThemeChange }) {
   const [open, setOpen] = useState(false);
   const [editor, setEditor] = useState(() => localStorage.getItem(EDITOR_STORAGE_KEY) || 'vscode');
   const [repoPath, setRepoPath] = useState(() => localStorage.getItem(REPO_PATH_STORAGE_KEY) || '');
@@ -60,6 +63,22 @@ function EditorSelector() {
       </button>
       {open && (
         <div className="editor-selector-dropdown">
+          <div className="editor-selector-section-label">Theme</div>
+          {Object.values(THEMES).map((t) => (
+            <button
+              key={t.id}
+              className={`editor-selector-option${t.id === themeId ? ' active' : ''}`}
+              onClick={() => onThemeChange(t.id)}
+            >
+              {t.label}
+              {t.id === themeId && (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3.5 8.5 6.5 11.5 12.5 4.5" />
+                </svg>
+              )}
+            </button>
+          ))}
+          <div className="editor-selector-divider" />
           <div className="editor-selector-section-label">Editor</div>
           {EDITORS.map((e) => (
             <button
@@ -98,33 +117,43 @@ const headerTitle = navTree.length > 0 ? navTree[0].title : 'Documentation';
 
 export default function App() {
   const { pathname } = useLocation();
+  const [themeId, setThemeId] = useState(getInitialThemeId);
+
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
   useEffect(() => {
     document.title = headerTitle;
   }, []);
 
-  return (
-    <div className="app-layout">
-      <header className="app-header">
-        <Link to="/">
-          <h1 className="app-header-title">{headerTitle}</h1>
-          <p className="app-header-subtitle">
-            Architecture documentation
-          </p>
-        </Link>
-        <EditorSelector />
-      </header>
-      <CommandPalette pages={pages} />
+  const selectTheme = (id) => {
+    setThemeId(id);
+    localStorage.setItem(THEME_STORAGE_KEY, id);
+    applyTheme(getTheme(id));
+  };
 
-      <main className="app-main">
-        <Routes>
-          <Route
-            path="*"
-            element={<DocPage pages={pages} navTree={navTree} />}
-          />
-        </Routes>
-      </main>
-    </div>
+  return (
+    <ThemeContext.Provider value={{ themeId }}>
+      <div className="app-layout">
+        <header className="app-header">
+          <Link to="/">
+            <h1 className="app-header-title">{headerTitle}</h1>
+            <p className="app-header-subtitle">
+              Architecture documentation
+            </p>
+          </Link>
+          <EditorSelector themeId={themeId} onThemeChange={selectTheme} />
+        </header>
+        <CommandPalette pages={pages} />
+
+        <main className="app-main">
+          <Routes>
+            <Route
+              path="*"
+              element={<DocPage pages={pages} navTree={navTree} />}
+            />
+          </Routes>
+        </main>
+      </div>
+    </ThemeContext.Provider>
   );
 }

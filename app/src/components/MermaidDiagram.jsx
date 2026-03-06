@@ -3,22 +3,24 @@ import ReactDOM from 'react-dom';
 import mermaid from 'mermaid';
 import NodePopover from './NodePopover';
 import SourcePanel from './SourcePanel';
+import { useThemeId } from '../ThemeContext.js';
+import { getTheme } from '../themes/index.js';
 
-let mermaidInitialized = false;
+let lastInitThemeId = null;
 
-function initMermaid() {
-  if (mermaidInitialized) return;
+function initMermaid(theme) {
+  if (lastInitThemeId === theme.id) return;
   mermaid.initialize({
     startOnLoad: false,
     theme: 'base',
     themeVariables: {
-      primaryColor: '#faf6ee',
-      primaryBorderColor: '#d8d0c0',
-      primaryTextColor: '#2a2010',
-      lineColor: '#b0a890',
-      secondaryColor: '#f5f0e6',
-      tertiaryColor: '#fdfcf9',
-      fontFamily: 'Source Sans 3, sans-serif',
+      primaryColor: theme.mermaid.primaryColor,
+      primaryBorderColor: theme.mermaid.primaryBorderColor,
+      primaryTextColor: theme.mermaid.primaryTextColor,
+      lineColor: theme.mermaid.lineColor,
+      secondaryColor: theme.mermaid.secondaryColor,
+      tertiaryColor: theme.mermaid.tertiaryColor,
+      fontFamily: theme.fonts.sans.replace(/'/g, ''),
       fontSize: '13px',
     },
     flowchart: {
@@ -30,7 +32,7 @@ function initMermaid() {
       useMaxWidth: true,
     },
   });
-  mermaidInitialized = true;
+  lastInitThemeId = theme.id;
 }
 
 // Running counter to avoid Mermaid ID collisions across renders
@@ -91,8 +93,8 @@ function findNodeElements(container, nodeId, participantMap) {
  *
  * onNodeClick(nodeId, fileRef, anchorEl) — each caller wraps with its own logic.
  */
-function renderMermaidInto(container, mermaidId, definition, nodeFiles, participantMap, onNodeClick, setError) {
-  initMermaid();
+function renderMermaidInto(container, mermaidId, definition, nodeFiles, participantMap, onNodeClick, setError, theme) {
+  initMermaid(theme || getTheme('warm'));
   const renderId = `mermaid-${mermaidId}-${renderCounter++}`;
   const hasClickableNodes = nodeFiles && Object.keys(nodeFiles).length > 0;
 
@@ -125,6 +127,7 @@ function renderMermaidInto(container, mermaidId, definition, nodeFiles, particip
 
 function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFiles, activeNodeId, onNodeSelect, onClose }) {
   const containerRef = useRef(null);
+  const themeId = useThemeId();
 
   // Refs to avoid stale closures in click handlers attached by renderMermaidInto
   const activeNodeIdRef = useRef(activeNodeId);
@@ -154,11 +157,12 @@ function FullscreenOverlay({ id, definition, nodeFiles, participantMap, sourceFi
           }
         }
       },
-      null
+      null,
+      getTheme(themeId)
     );
 
     return () => { cancelled = true; };
-  }, [id, definition, nodeFiles, participantMap]);
+  }, [id, definition, nodeFiles, participantMap, themeId]);
 
   // Highlight active node in SVG
   useEffect(() => {
@@ -228,6 +232,7 @@ export default function MermaidDiagram({ id, definition, nodeFiles, participantM
   const containerRef = useRef(null);
   const [error, setError] = useState(null);
   const [popover, setPopover] = useState(null);
+  const themeId = useThemeId();
 
   const hasClickableNodes = nodeFiles && Object.keys(nodeFiles).length > 0;
 
@@ -250,11 +255,12 @@ export default function MermaidDiagram({ id, definition, nodeFiles, participantM
           });
         }
       },
-      (msg) => { if (!cancelled) setError(msg); }
+      (msg) => { if (!cancelled) setError(msg); },
+      getTheme(themeId)
     );
 
     return () => { cancelled = true; };
-  }, [id, definition, nodeFiles, participantMap, hasClickableNodes]);
+  }, [id, definition, nodeFiles, participantMap, hasClickableNodes, themeId]);
 
   if (error) {
     return (
