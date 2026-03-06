@@ -1,13 +1,11 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react-dom';
+import React, { useMemo, useState } from 'react';
 import CodeBlock from './CodeBlock';
 import { editorUrl } from './editorUtils';
 
 const MAX_FULL_FILE_LINES = 100;
 const CONTEXT_LINES = 2;
 
-export default function NodePopover({ fileRef, sourceFiles, anchorEl, onClose }) {
-  const popoverRef = useRef(null);
+export default function SourcePanel({ fileRef, sourceFiles, onClose }) {
   const { file, startLine, endLine } = fileRef;
   const fileData = sourceFiles?.[file];
 
@@ -15,7 +13,6 @@ export default function NodePopover({ fileRef, sourceFiles, anchorEl, onClose })
     if (!fileData?.content) return null;
     const lines = fileData.content.split('\n');
     if (!startLine) {
-      // Full file display
       if (lines.length > MAX_FULL_FILE_LINES) {
         return {
           code: lines.slice(0, MAX_FULL_FILE_LINES).join('\n') + '\n\n// ... truncated ...',
@@ -33,7 +30,6 @@ export default function NodePopover({ fileRef, sourceFiles, anchorEl, onClose })
         focusEndLine: lines.length,
       };
     }
-    // Line-range display with context
     const ctxStart = Math.max(0, startLine - 1 - CONTEXT_LINES);
     const ctxEnd = Math.min(lines.length, endLine + CONTEXT_LINES);
     return {
@@ -45,80 +41,39 @@ export default function NodePopover({ fileRef, sourceFiles, anchorEl, onClose })
   }, [fileData, startLine, endLine]);
 
   const [editor] = useState(() => localStorage.getItem('docs-editor-preference') || 'vscode');
-
-  const { refs, floatingStyles } = useFloating({
-    elements: { reference: anchorEl },
-    placement: 'bottom',
-    middleware: [offset(12), flip({ padding: 20 }), shift({ padding: 20 })],
-    whileElementsMounted: autoUpdate,
-  });
-
-  // Close on Escape
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose]);
-
-  // Close on click outside
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target)) {
-        onClose();
-      }
-    };
-    // Delay to avoid the click that opened the popover from immediately closing it
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClick);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', handleClick);
-    };
-  }, [onClose]);
-
   const repoPath = localStorage.getItem('docs-repo-path') || '';
   const href = repoPath ? editorUrl(editor, repoPath, file, startLine || 1) : null;
 
   return (
-    <div
-      ref={(el) => {
-        popoverRef.current = el;
-        refs.setFloating(el);
-      }}
-      className="node-popover"
-      style={floatingStyles}
-    >
-      <header className="node-popover-header">
-        <div className="node-popover-file-info">
+    <div className="source-panel">
+      <header className="source-panel-header">
+        <div className="source-panel-file-info">
           {href ? (
-            <a className="node-popover-file-path" href={href} title="Open in editor">
+            <a className="source-panel-file-path" href={href} title="Open in editor">
               {file}
             </a>
           ) : (
-            <span className="node-popover-file-path" title="Set repo path in settings to enable editor links">
+            <span className="source-panel-file-path" title="Set repo path in settings to enable editor links">
               {file}
             </span>
           )}
           {startLine && (
-            <span className="node-popover-line-range">
+            <span className="source-panel-line-range">
               L{startLine}&ndash;{endLine}
             </span>
           )}
         </div>
-        <button className="node-popover-close" onClick={onClose} aria-label="Close">
+        <button className="source-panel-close" onClick={onClose} aria-label="Close panel">
           &times;
         </button>
       </header>
 
       {fileData?.language && (
-        <div className="node-popover-language">{fileData.language}</div>
+        <div className="source-panel-language">{fileData.language}</div>
       )}
 
       {snippet ? (
-        <div className="node-popover-code-wrapper">
+        <div className="source-panel-code-wrapper">
           <CodeBlock
             code={snippet.code}
             language={fileData?.language}
@@ -128,13 +83,13 @@ export default function NodePopover({ fileRef, sourceFiles, anchorEl, onClose })
           />
         </div>
       ) : fileData?.error ? (
-        <div className="node-popover-error">File not found in repository</div>
+        <div className="source-panel-error">File not found in repository</div>
       ) : (
-        <div className="node-popover-error">No code snippet available</div>
+        <div className="source-panel-error">No code snippet available</div>
       )}
 
       {snippet?.truncated && (
-        <div className="node-popover-truncated">
+        <div className="source-panel-truncated">
           Showing first {snippet.focusEndLine} of {snippet.totalLines} lines
         </div>
       )}

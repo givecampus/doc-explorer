@@ -501,10 +501,21 @@ body {
   color: var(--text-primary);
 }
 
-.diagram-fullscreen-scroll {
+.diagram-fullscreen-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.diagram-fullscreen-diagram-pane {
   flex: 1;
   overflow: auto;
   padding: 1.5rem;
+}
+
+.diagram-fullscreen-diagram-pane.has-source {
+  flex: 0 0 55%;
 }
 
 .diagram-fullscreen-content svg {
@@ -533,6 +544,115 @@ body {
   filter: brightness(0.95);
   stroke-width: 2.5px;
   stroke: var(--text-accent);
+}
+
+/* Active node highlight in fullscreen */
+.diagram-fullscreen-content .active-node rect,
+.diagram-fullscreen-content .active-node polygon,
+.diagram-fullscreen-content .active-node circle,
+.diagram-fullscreen-content .active-node .label-container {
+  stroke: var(--text-accent) !important;
+  stroke-width: 2.5px !important;
+  filter: brightness(0.95);
+}
+
+/* ---------- Source Panel (fullscreen split view) ---------- */
+
+@keyframes source-panel-slide-in {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+.source-panel {
+  flex: 0 0 45%;
+  border-left: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-surface);
+  animation: source-panel-slide-in 0.15s ease-out;
+}
+
+.source-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  gap: 0.75rem;
+}
+
+.source-panel-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.source-panel-file-path {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-all;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.source-panel-file-path:hover {
+  text-decoration: underline;
+  color: var(--text-accent);
+}
+
+.source-panel-line-range {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-accent);
+  font-weight: 500;
+}
+
+.source-panel-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.source-panel-close:hover {
+  color: var(--text-primary);
+}
+
+.source-panel-language {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 0.35rem 1rem 0;
+}
+
+.source-panel-code-wrapper {
+  flex: 1;
+  overflow: auto;
+}
+
+.source-panel-error {
+  padding: 1.5rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.source-panel-truncated {
+  padding: 0.4rem 1rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
+  text-align: center;
 }
 
 /* ---------- Node Popover ---------- */

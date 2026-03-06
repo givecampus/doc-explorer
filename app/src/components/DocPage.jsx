@@ -1,5 +1,5 @@
-import React from 'react';
-import { useLocation, Navigate, Link } from 'react-router-dom';
+import React, { useCallback } from 'react';
+import { useLocation, useSearchParams, Navigate, Link } from 'react-router-dom';
 import Breadcrumb from './Breadcrumb';
 import MarkdownRenderer from './MarkdownRenderer';
 import MermaidDiagram from './MermaidDiagram';
@@ -31,6 +31,36 @@ function getChildren(route, pages) {
 
 export default function DocPage({ pages, navTree }) {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const activeDiagramId = searchParams.get('diagram');
+  const activeNodeId = searchParams.get('node');
+
+  const setDiagramState = useCallback((diagramId, nodeId) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (diagramId) {
+        next.set('diagram', diagramId);
+      } else {
+        next.delete('diagram');
+      }
+      if (nodeId) {
+        next.set('node', nodeId);
+      } else {
+        next.delete('node');
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const clearDiagramState = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('diagram');
+      next.delete('node');
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Normalize: strip trailing slash (except root)
   let route = location.pathname;
@@ -63,14 +93,20 @@ export default function DocPage({ pages, navTree }) {
           return <MarkdownRenderer key={i} content={section.content} currentRoute={route} />;
         }
         if (section.type === 'mermaid') {
+          const diagramId = `${routeSlug}-${section.id}-${i}`;
           return (
             <MermaidDiagram
               key={i}
-              id={`${routeSlug}-${section.id}-${i}`}
+              id={diagramId}
               definition={section.definition}
               nodeFiles={section.nodeFiles}
               participantMap={section.participantMap}
               sourceFiles={sourceFiles}
+              isFullscreen={diagramId === activeDiagramId}
+              activeNodeId={diagramId === activeDiagramId ? activeNodeId : null}
+              onFullscreenOpen={() => setDiagramState(diagramId, null)}
+              onFullscreenClose={clearDiagramState}
+              onNodeSelect={(nodeId) => setDiagramState(diagramId, nodeId)}
             />
           );
         }
