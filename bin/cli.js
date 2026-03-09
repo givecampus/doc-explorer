@@ -179,11 +179,25 @@ async function main() {
     console.log('\n  Starting preview server...\n');
 
     const { preview } = await import('vite');
+
+    // Wire chat middleware if API key is available
+    const plugins = [];
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const { chatPlugin } = await import(path.join(PACKAGE_ROOT, 'server', 'chat.js'));
+        plugins.push(chatPlugin());
+        console.log('  Chat enabled (ANTHROPIC_API_KEY found)\n');
+      } catch (err) {
+        console.warn('  Chat plugin failed to load:', err.message);
+      }
+    }
+
     const server = await preview({
       configFile: false,
       root: tmpDir,
       build: { outDir: '.' },
       preview: { open: true },
+      plugins,
     });
 
     server.printUrls();

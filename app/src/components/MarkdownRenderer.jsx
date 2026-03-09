@@ -40,7 +40,7 @@ function isExternal(href) {
   return /^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('mailto:');
 }
 
-export default function MarkdownRenderer({ content, currentRoute }) {
+export default function MarkdownRenderer({ content, currentRoute, linkComponent: LinkComponent }) {
   const currentDir = currentRoute
     ? currentRoute.replace(/\/[^/]*$/, '') || '/'
     : '/';
@@ -50,6 +50,10 @@ export default function MarkdownRenderer({ content, currentRoute }) {
     h3: makeHeading('h3'),
     h4: makeHeading('h4'),
     a({ href, children, ...rest }) {
+      // Use custom link component if provided (e.g., chat citations)
+      if (LinkComponent) {
+        return <LinkComponent href={href}>{children}</LinkComponent>;
+      }
       if (!href || href.startsWith('#')) {
         return <a href={href} {...rest}>{children}</a>;
       }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import DocPage from './components/DocPage';
 import CommandPalette from './components/CommandPalette';
+import ChatPanel from './components/ChatPanel';
 import pagesData from './data/pages.json';
 import { THEMES, getTheme, getInitialThemeId, THEME_STORAGE_KEY } from './themes/index.js';
 import { applyTheme } from './themes/applyTheme.js';
@@ -118,6 +119,7 @@ const headerTitle = navTree.length > 0 ? navTree[0].title : 'Documentation';
 export default function App() {
   const { pathname } = useLocation();
   const [themeId, setThemeId] = useState(getInitialThemeId);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
 
@@ -125,11 +127,26 @@ export default function App() {
     document.title = headerTitle;
   }, []);
 
+  // Cmd+. to toggle chat
+  useEffect(() => {
+    const handleKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '.') {
+        e.preventDefault();
+        setChatOpen((o) => !o);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, []);
+
   const selectTheme = (id) => {
     setThemeId(id);
     localStorage.setItem(THEME_STORAGE_KEY, id);
     applyTheme(getTheme(id));
   };
+
+  const toggleChat = useCallback(() => setChatOpen((o) => !o), []);
+  const closeChat = useCallback(() => setChatOpen(false), []);
 
   return (
     <ThemeContext.Provider value={{ themeId }}>
@@ -141,7 +158,19 @@ export default function App() {
               Architecture documentation
             </p>
           </Link>
-          <EditorSelector themeId={themeId} onThemeChange={selectTheme} />
+          <div className="app-header-actions">
+            <button
+              className="chat-toggle-btn"
+              onClick={toggleChat}
+              aria-label="Toggle AI chat"
+              title="Ask AI (Cmd+.)"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V3z" />
+              </svg>
+            </button>
+            <EditorSelector themeId={themeId} onThemeChange={selectTheme} />
+          </div>
         </header>
         <CommandPalette pages={pages} />
 
@@ -153,6 +182,13 @@ export default function App() {
             />
           </Routes>
         </main>
+
+        <ChatPanel
+          open={chatOpen}
+          onClose={closeChat}
+          currentRoute={pathname}
+          pages={pages}
+        />
       </div>
     </ThemeContext.Provider>
   );
