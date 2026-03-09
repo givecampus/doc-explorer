@@ -79,6 +79,7 @@ export async function fetchFileContent(filePath) {
   if (LOCAL_REPO_ROOT) {
     const absPath = path.resolve(LOCAL_REPO_ROOT, filePath);
     if (!fs.existsSync(absPath)) return null;
+    if (fs.statSync(absPath).isDirectory()) return null;
     return fs.readFileSync(absPath, 'utf-8');
   }
 
