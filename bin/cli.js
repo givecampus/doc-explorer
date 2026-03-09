@@ -180,13 +180,26 @@ async function main() {
 
     const { preview } = await import('vite');
 
-    // Wire chat middleware if API key is available
+    // Load .env from caller's cwd so ANTHROPIC_API_KEY is available
+    const callerEnv = path.join(callerCwd, '.env');
+    if (fs.existsSync(callerEnv)) {
+      for (const line of fs.readFileSync(callerEnv, 'utf-8').split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const idx = trimmed.indexOf('=');
+        if (idx === -1) continue;
+        const key = trimmed.slice(0, idx).trim();
+        const val = trimmed.slice(idx + 1).trim();
+        if (!process.env[key]) process.env[key] = val;
+      }
+    }
+
+    // Wire chat plugin — configurePreviewServer handles preview mode
     const plugins = [];
     if (process.env.ANTHROPIC_API_KEY) {
       try {
         const { chatPlugin } = await import(path.join(PACKAGE_ROOT, 'server', 'chat.js'));
         plugins.push(chatPlugin());
-        console.log('  Chat enabled (ANTHROPIC_API_KEY found)\n');
       } catch (err) {
         console.warn('  Chat plugin failed to load:', err.message);
       }

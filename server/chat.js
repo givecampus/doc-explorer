@@ -322,42 +322,13 @@ async function handleChatRequest(req, res) {
   res.end();
 }
 
-// --------------- Vite plugin ---------------
+// --------------- Middleware wiring shared by dev + preview ---------------
 
-export function chatPlugin() {
-  return {
-    name: 'doc-viewer-chat',
-    configureServer(server) {
-      const mode = embeddingsData ? 'RAG' : 'full-context';
-      ensureDataLoaded();
-      console.log(`  Chat plugin loaded (${embeddingsData ? 'RAG' : 'full-context'} mode)`);
-
-      server.middlewares.use('/api/chat', async (req, res, next) => {
-        if (req.method !== 'POST') return next();
-        try {
-          await handleChatRequest(req, res);
-        } catch (err) {
-          console.error('Chat handler error:', err);
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Internal server error' }));
-          }
-        }
-      });
-    },
-  };
-}
-
-// Standalone middleware for use in CLI preview server
-export function chatMiddleware() {
-  ensureDataLoaded();
-  return async (req, res, next) => {
-    if (req.url !== '/api/chat' || req.method !== 'POST') return next();
+function wireMiddleware(httpServer) {
+  // httpServer is a connect-compatible middleware stack
+  httpServer.use('/api/chat', async (req, res, next) => {
+    if (req.method !== 'POST') return next();
     try {
-      // Parse body manually for standalone server
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
-      req.body = JSON.parse(Buffer.concat(chunks).toString());
       await handleChatRequest(req, res);
     } catch (err) {
       console.error('Chat handler error:', err);
@@ -366,5 +337,27 @@ export function chatMiddleware() {
         res.end(JSON.stringify({ error: 'Internal server error' }));
       }
     }
+  });
+}
+
+// --------------- Vite plugin ---------------
+
+export function chatPlugin() {
+  return {
+    name: 'doc-viewer-chat',
+
+    // Dev server (npm run dev)
+    configureServer(server) {
+      ensureDataLoaded();
+      console.log(`  Chat plugin loaded (${embeddingsData ? 'RAG' : 'full-context'} mode)`);
+      wireMiddleware(server.middlewares);
+    },
+
+    // Preview server (npm run preview / illumina view)
+    configurePreviewServer(server) {
+      ensureDataLoaded();
+      console.log(`  Chat plugin loaded (${embeddingsData ? 'RAG' : 'full-context'} mode)`);
+      wireMiddleware(server.middlewares);
+    },
   };
 }
