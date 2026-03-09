@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -49,19 +50,72 @@ function printUsage() {
 
   Usage:
     illumina create [options]
+    illumina view [options]
+
+  Commands:
+    create    Build a static site to an output directory
+    view      Build to a temp directory, serve it, and open in browser
 
   Options:
     --docs-path <path>   Path to docs directory in repo (default: docs)
-    --output <dir>       Output directory for built site (default: _site)
-    --base <path>        Base path for assets (default: /)
+    --output <dir>       Output directory for built site (default: _site, create only)
+    --base <path>        Base path for assets (default: ./)
     --theme <id>         Default theme: warm, dark, cool (default: warm)
     -h, --help           Show this help message
 
   Examples:
     illumina create
     illumina create --docs-path documentation --base /my-repo/
+    illumina view
+    illumina view --docs-path documentation --theme dark
     npx github:marcus-gc/outreach-docs create --base /my-repo/
 `);
+}
+
+// --- Build helper ---
+
+async function buildSite({ callerCwd, docsPath, theme, outDir, base }) {
+  const dataDir = path.join(PACKAGE_ROOT, 'app', 'src', 'data');
+
+  // Set env vars for build scripts before importing them
+  process.env.LOCAL_REPO_ROOT = callerCwd;
+  process.env.DOCS_PATH = docsPath;
+
+  // Step 1: Fetch and parse docs
+  console.log('  [1/3] Fetching and parsing docs...\n');
+  const { fetchDocs } = await import(path.join(PACKAGE_ROOT, 'build', 'fetch-docs.js'));
+  await fetchDocs({
+    repoRoot: callerCwd,
+    docsPath,
+    outputDir: dataDir,
+  });
+
+  // Step 2: Extract source code snippets
+  console.log('\n  [2/3] Extracting source code snippets...\n');
+  const { extractSnippets } = await import(path.join(PACKAGE_ROOT, 'build', 'extract-code-snippets.js'));
+  await extractSnippets({ dataDir });
+
+  // Step 3: Run Vite build
+  console.log('\n  [3/3] Building static site with Vite...\n');
+  const { build } = await import('vite');
+  const react = (await import('@vitejs/plugin-react')).default;
+
+  const appDir = path.join(PACKAGE_ROOT, 'app');
+
+  await build({
+    root: appDir,
+    base,
+    plugins: [react()],
+    build: {
+      outDir,
+      emptyOutDir: true,
+    },
+    define: {
+      'import.meta.env.VITE_HASH_ROUTER': JSON.stringify('true'),
+      'import.meta.env.VITE_DEFAULT_THEME': JSON.stringify(theme),
+    },
+    logLevel: 'info',
+  });
 }
 
 // --- Main ---
@@ -74,70 +128,67 @@ async function main() {
     process.exit(1);
   }
 
-  if (opts.command !== 'create') {
+  if (opts.command !== 'create' && opts.command !== 'view') {
     console.error(`Unknown command: ${opts.command}`);
     printUsage();
     process.exit(1);
   }
 
   const callerCwd = process.cwd();
-  const dataDir = path.join(PACKAGE_ROOT, 'app', 'src', 'data');
 
   // Ensure base has trailing slash
   let base = opts.base;
   if (!base.endsWith('/')) base += '/';
 
-  console.log('\n  illumina — building documentation site\n');
-  console.log(`  Docs path:  ${opts.docsPath}`);
-  console.log(`  Output dir: ${path.resolve(callerCwd, opts.output)}`);
-  console.log(`  Base path:  ${base}`);
-  console.log(`  Theme:      ${opts.theme}`);
-  console.log('');
+  if (opts.command === 'create') {
+    const outDir = path.resolve(callerCwd, opts.output);
 
-  // Step 1: Set env vars for build scripts before importing them
-  process.env.LOCAL_REPO_ROOT = callerCwd;
-  process.env.DOCS_PATH = opts.docsPath;
+    console.log('\n  illumina — building documentation site\n');
+    console.log(`  Docs path:  ${opts.docsPath}`);
+    console.log(`  Output dir: ${outDir}`);
+    console.log(`  Base path:  ${base}`);
+    console.log(`  Theme:      ${opts.theme}`);
+    console.log('');
 
-  // Step 2: Fetch and parse docs
-  console.log('  [1/3] Fetching and parsing docs...\n');
-  const { fetchDocs } = await import(path.join(PACKAGE_ROOT, 'build', 'fetch-docs.js'));
-  await fetchDocs({
-    repoRoot: callerCwd,
-    docsPath: opts.docsPath,
-    outputDir: dataDir,
-  });
+    await buildSite({ callerCwd, docsPath: opts.docsPath, theme: opts.theme, outDir, base });
 
-  // Step 3: Extract source code snippets
-  console.log('\n  [2/3] Extracting source code snippets...\n');
-  const { extractSnippets } = await import(path.join(PACKAGE_ROOT, 'build', 'extract-code-snippets.js'));
-  await extractSnippets({
-    dataDir,
-  });
+    console.log(`\n  Done! Static site written to ${outDir}\n`);
+  }
 
-  // Step 4: Run Vite build
-  console.log('\n  [3/3] Building static site with Vite...\n');
-  const { build } = await import('vite');
-  const react = (await import('@vitejs/plugin-react')).default;
+  if (opts.command === 'view') {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'illumina-'));
 
-  const appDir = path.join(PACKAGE_ROOT, 'app');
-  const outDir = path.resolve(callerCwd, opts.output);
+    const cleanup = () => {
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    };
+    process.on('SIGINT', () => { cleanup(); process.exit(0); });
+    process.on('SIGTERM', () => { cleanup(); process.exit(0); });
 
-  await build({
-    root: appDir,
-    base,
-    plugins: [react()],
-    build: {
-      outDir,
-      emptyOutDir: true,
-    },
-    define: {
-      'import.meta.env.VITE_HASH_ROUTER': JSON.stringify('true'),
-      'import.meta.env.VITE_DEFAULT_THEME': JSON.stringify(opts.theme),
-    },
-    logLevel: 'info',
-  });
+    console.log('\n  illumina — building and previewing documentation site\n');
+    console.log(`  Docs path:  ${opts.docsPath}`);
+    console.log(`  Theme:      ${opts.theme}`);
+    console.log('');
 
-  console.log(`\n  Done! Static site written to ${outDir}\n`);
+    try {
+      await buildSite({ callerCwd, docsPath: opts.docsPath, theme: opts.theme, outDir: tmpDir, base: './' });
+    } catch (err) {
+      cleanup();
+      throw err;
+    }
+
+    console.log('\n  Starting preview server...\n');
+
+    const { preview } = await import('vite');
+    const server = await preview({
+      configFile: false,
+      root: tmpDir,
+      build: { outDir: '.' },
+      preview: { open: true },
+    });
+
+    server.printUrls();
+    server.bindCLIShortcuts({ print: true });
+  }
 }
 
 main().catch((err) => {
