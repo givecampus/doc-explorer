@@ -3,6 +3,40 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Link } from 'react-router-dom';
+import hljs from 'highlight.js/lib/core';
+import ruby from 'highlight.js/lib/languages/ruby';
+import javascript from 'highlight.js/lib/languages/javascript';
+import xml from 'highlight.js/lib/languages/xml';
+import erb from 'highlight.js/lib/languages/erb';
+import css from 'highlight.js/lib/languages/css';
+import yaml from 'highlight.js/lib/languages/yaml';
+import json from 'highlight.js/lib/languages/json';
+import bash from 'highlight.js/lib/languages/bash';
+import python from 'highlight.js/lib/languages/python';
+
+hljs.registerLanguage('ruby', ruby);
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('jsx', javascript);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('erb', erb);
+hljs.registerLanguage('slim', ruby);
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('yaml', yaml);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('python', python);
+
+const FENCE_LANG_MAP = {
+  js: 'javascript',
+  ts: 'javascript',
+  tsx: 'javascript',
+  jsx: 'jsx',
+  rb: 'ruby',
+  yml: 'yaml',
+  sh: 'bash',
+  shell: 'bash',
+};
 
 function slugify(text) {
   return text
@@ -49,6 +83,28 @@ export default function MarkdownRenderer({ content, currentRoute }) {
     h2: makeHeading('h2'),
     h3: makeHeading('h3'),
     h4: makeHeading('h4'),
+    code({ node, className, children, ...props }) {
+      if (!className?.startsWith('language-')) {
+        return <code {...props}>{children}</code>;
+      }
+      const langKey = className.replace('language-', '');
+      const lang = FENCE_LANG_MAP[langKey] ?? langKey;
+      const raw = String(children).replace(/\n$/, '');
+      let highlighted;
+      try {
+        highlighted = hljs.getLanguage(lang)
+          ? hljs.highlight(raw, { language: lang }).value
+          : hljs.highlightAuto(raw).value;
+      } catch {
+        highlighted = raw;
+      }
+      return (
+        <code
+          className={`hljs ${className}`}
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+        />
+      );
+    },
     a({ href, children, ...rest }) {
       if (!href || href.startsWith('#')) {
         return <a href={href} {...rest}>{children}</a>;
